@@ -50,6 +50,8 @@
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
 
+void HardFault_Handler_C(uint32_t *hardfault_args);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -86,6 +88,8 @@ void NMI_Handler(void)
   */
 void HardFault_Handler(void)
 {
+  /* USER CODE BEGIN HardFault_IRQn 0 */
+
   __asm volatile
   (
     "TST lr, #4\n"              // 判断当前使用的是MSP还是PSP
@@ -97,59 +101,16 @@ void HardFault_Handler(void)
     :
     : "r0"
   );
+
+
+  /* USER CODE END HardFault_IRQn 0 */
+  // while (1)
+  // {
+    /* USER CODE BEGIN W1_HardFault_IRQn 0 */
+    /* USER CODE END W1_HardFault_IRQn 0 */
+  // }
 }
 
-
-void HardFault_Handler_C(uint32_t *hardfault_args)
-{
-    uint32_t stacked_r0 = hardfault_args[0];
-    uint32_t stacked_r1 = hardfault_args[1];
-    uint32_t stacked_r2 = hardfault_args[2];
-    uint32_t stacked_r3 = hardfault_args[3];
-    uint32_t stacked_r12 = hardfault_args[4];
-    uint32_t stacked_lr = hardfault_args[5];
-    uint32_t stacked_pc = hardfault_args[6];
-    uint32_t stacked_psr = hardfault_args[7];
-
-    // 获取其他故障相关信息
-    uint32_t cfsr = SCB->CFSR;    // Configurable Fault Status Register
-    uint32_t hfsr = SCB->HFSR;    // HardFault Status Register
-    uint32_t dfsr = SCB->DFSR;    // Debug Fault Status Register
-    uint32_t afsr = SCB->AFSR;    // Auxiliary Fault Status Register
-    uint32_t mmfar = SCB->MMFAR;  // MemManage Fault Address Register
-    uint32_t bfar = SCB->BFAR;    // BusFault Address Register
-
-    char msg[512];  // 增加缓冲区大小以容纳更多信息
-    int len = snprintf(msg, sizeof(msg),
-        "\n*** HARD FAULT DETECTED ***\n"
-        "=== Saved Registers ===\n"
-        "R0:  0x%08X    R1:  0x%08X\n"
-        "R2:  0x%08X    R3:  0x%08X\n"
-        "R12: 0x%08X    LR:  0x%08X\n"
-        "PC:  0x%08X    PSR: 0x%08X\n"
-        "=== Fault Status ===\n"
-        "CFSR: 0x%08X    HFSR: 0x%08X\n"
-        "MMFAR:0x%08X    BFAR: 0x%08X\n"
-        "DFSR: 0x%08X    AFSR: 0x%08X\n"
-        "*************************\n",
-        stacked_r0, stacked_r1, stacked_r2, stacked_r3,
-        stacked_r12, stacked_lr, stacked_pc, stacked_psr,
-        cfsr, hfsr, mmfar, bfar, dfsr, afsr
-    );
-
-    // 输出到SEGGER RTT（调试更高效）
-#ifdef SEGGER_RTT
-    #include "SEGGER_RTT.h"
-    LOG_ERR(msg);  // 修复：使用msg而不是buffer，并使用len而不是strlen(msg)
-#elif defined(HAL_UART_MODULE_ENABLED)
-    // 输出到串口（需确保huart已初始化，这里用USART6示例）
-    #include "usart.h"
-    HAL_UART_Transmit(&huart6, (uint8_t*)msg, len, HAL_MAX_DELAY);  // 使用len而不是strlen(msg)
-    HAL_Delay(100);
-#endif
-
-    while(1);
-}
 
 /**
   * @brief This function handles Memory management fault.
@@ -284,5 +245,57 @@ void USART6_IRQHandler(void)
 }
 
 /* USER CODE BEGIN 1 */
+
+void HardFault_Handler_C(uint32_t *hardfault_args)
+{
+    uint32_t stacked_r0 = hardfault_args[0];
+    uint32_t stacked_r1 = hardfault_args[1];
+    uint32_t stacked_r2 = hardfault_args[2];
+    uint32_t stacked_r3 = hardfault_args[3];
+    uint32_t stacked_r12 = hardfault_args[4];
+    uint32_t stacked_lr = hardfault_args[5];
+    uint32_t stacked_pc = hardfault_args[6];
+    uint32_t stacked_psr = hardfault_args[7];
+
+    // 获取其他故障相关信息
+    uint32_t cfsr = SCB->CFSR;    // Configurable Fault Status Register
+    uint32_t hfsr = SCB->HFSR;    // HardFault Status Register
+    uint32_t dfsr = SCB->DFSR;    // Debug Fault Status Register
+    uint32_t afsr = SCB->AFSR;    // Auxiliary Fault Status Register
+    uint32_t mmfar = SCB->MMFAR;  // MemManage Fault Address Register
+    uint32_t bfar = SCB->BFAR;    // BusFault Address Register
+
+    char msg[512];  // 增加缓冲区大小以容纳更多信息
+    int len = snprintf(msg, sizeof(msg),
+        "\n*** HARD FAULT DETECTED ***\n"
+        "=== Saved Registers ===\n"
+        "R0:  0x%08X    R1:  0x%08X\n"
+        "R2:  0x%08X    R3:  0x%08X\n"
+        "R12: 0x%08X    LR:  0x%08X\n"
+        "PC:  0x%08X    PSR: 0x%08X\n"
+        "=== Fault Status ===\n"
+        "CFSR: 0x%08X    HFSR: 0x%08X\n"
+        "MMFAR:0x%08X    BFAR: 0x%08X\n"
+        "DFSR: 0x%08X    AFSR: 0x%08X\n"
+        "*************************\n",
+        stacked_r0, stacked_r1, stacked_r2, stacked_r3,
+        stacked_r12, stacked_lr, stacked_pc, stacked_psr,
+        cfsr, hfsr, mmfar, bfar, dfsr, afsr
+    );
+
+    // 输出到SEGGER RTT（调试更高效）
+#ifdef SEGGER_RTT
+    #include "SEGGER_RTT.h"
+    LOG_ERR(msg);  // 修复：使用msg而不是buffer，并使用len而不是strlen(msg)
+#elif defined(HAL_UART_MODULE_ENABLED)
+    // 输出到串口（需确保huart已初始化，这里用USART6示例）
+    #include "usart.h"
+    HAL_UART_Transmit(&huart6, (uint8_t*)msg, len, HAL_MAX_DELAY);  // 使用len而不是strlen(msg)
+    HAL_Delay(100);
+#endif
+
+    while(1);
+}
+
 
 /* USER CODE END 1 */
